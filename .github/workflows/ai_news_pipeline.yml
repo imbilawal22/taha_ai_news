@@ -1,0 +1,45 @@
+name: Daily AI News Research & Publish Pipeline
+
+on:
+  # Timings in PKT (Pakistan Time = UTC+5)
+  # 03:00 UTC = 08:00 AM PKT (Subha 8 bje)
+  # 13:00 UTC = 06:00 PM PKT (Sham 6 bje)
+  schedule:
+    - cron: '0 3,13 * * *'
+
+  # Allows manual run from GitHub Actions tab anytime
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  research_and_publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Run AI Research, Fact-Checking & Publishing
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          python scripts/fetch_and_publish_news.py
+
+      - name: Commit and Push Updated News
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add js/news-data.js
+          if git diff --staged --quiet; then
+            echo "No new updates to commit."
+          else
+            git commit -m "🤖 Auto-published verified AI News [skip ci]"
+            git push origin main
+          fi
